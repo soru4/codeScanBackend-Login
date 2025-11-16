@@ -13,14 +13,11 @@ import random
 SENDER_EMAIL = "codescanappcs12001@gmail.com" 
 
 
-@csrf_exempt
+@csrf_exempt #(very secure, very good)
 def currentUser(request):
     if request.user.is_authenticated:
-        return JsonResponse({
-            'username': request.user.username,
-            'email': request.user.email
-        })
-    return JsonResponse({'error': 'Not authenticated'}, status=401)
+        return JsonResponse({'username': request.user.username,'email': request.user.email})
+    return JsonResponse({'error': 'No one is logged in right now. '}, status=401)
 
 
 
@@ -32,7 +29,7 @@ def login_view(request):
         password = data.get('pass')
         
         if not all([username, password]):
-            return JsonResponse({'error': 'Missing username or password.'}, status=400)
+            return JsonResponse({'error': 'Missing username or password. you didnt write in a username or passWord before sending the request'}, status=400)
 
         user = authenticate(request, username=username, password=password)
         
@@ -42,21 +39,13 @@ def login_view(request):
             
             random_number = random.randint(100000, 999999)
             
-            AuthenticationCode.objects.update_or_create(
-                user=user, 
-                defaults={'code': random_number}
-            )
+            AuthenticationCode.objects.update_or_create(user=user, defaults={'code': random_number})
             
-             send_mail(
-                "Login Verification Code Scan", 
-                 f"Hello {user.username} \n \n Here is your email verification code: \n {random_number}\nDo not share this code\n DO NOT REPLY", 
-                 SENDER_EMAIL, 
-                 [user.email]
-             )
+             send_mail("Login Verification Code Scan", f"Hello {user.username} \n \n Here is your email verification code: \n {random_number}\nDo not share this code\n DO NOT REPLY", SENDER_EMAIL, [user.email])
             
             return JsonResponse({'email': user.email, 'message': 'Logged in. Proceed to verification.', 'username' : request.user.username})
         else:
-            return JsonResponse({'error': 'Invalid credentials.'}, status=401)
+            return JsonResponse({'error': 'Invalid credentials. Your Username and/ Or password are not in the system. '}, status=401)
             
     except json.JSONDecodeError:
         return JsonResponse({'error': 'Invalid JSON format.'}, status=400)
@@ -84,19 +73,11 @@ def register(request):
         
         random_number = random.randint(100000, 999999)
         
-        AuthenticationCode.objects.update_or_create(
-            user=user, 
-            defaults={'code': random_number}
-        )
+        AuthenticationCode.objects.update_or_create(user=user, defaults={'code': random_number})
         
-        send_mail(
-             "Sign Up Verification Code Scan", 
-             f"Hello {user.username} \n \n Welcome to Code Scan! \n\n Here is your email verification code: \n\n {random_number}\n\nDo not share this code\n DO NOT REPLY", 
-             SENDER_EMAIL, 
-             [user.email]
-        )
+        send_mail("Sign Up Verification Code Scan", f"Hello {user.username} \n \n Welcome to Code Scan! \n\n Here is your email verification code: \n\n {random_number}\n\nDo not share this code\n DO NOT REPLY", SENDER_EMAIL, [user.email])
         
-        return JsonResponse({'success': 'True', 'message': 'Account created and logged in.', 'username' : request.user.username})
+        return JsonResponse({'success': 'True', 'message': 'Account created and logged in. YAY everything works!', 'username' : request.user.username})
 
     except json.JSONDecodeError:
         return JsonResponse({'error': 'Invalid JSON format.'}, status=400)
@@ -126,7 +107,7 @@ def emailVerification(request):
     except AuthenticationCode.DoesNotExist:
      
         logout(request)
-        return JsonResponse({'success': 'false', 'error': 'Invalid code. Logged out.'}, status=403)
+        return JsonResponse({'success': 'false', 'error': 'Invalid code. type in the right code next time'}, status=403)
     except Exception as e:
         print(f"Verification error: {e}")
         return JsonResponse({'success': 'false', 'error': 'error occurred.'}, status=500)
@@ -169,7 +150,7 @@ def sendEmail(request):
         return JsonResponse({"success": True, 'message': 'Code sent.'}) 
     except Exception as e:
         print(f"Send email error: {e}")
-        return JsonResponse({'success': False, 'error': 'An unexpected error occurred.'}, status=500)
+        return JsonResponse({'success': False, 'error': 'An error occurred. (Idk when this would trigger ever)'}, status=500)
 
 
 
@@ -190,12 +171,7 @@ def resetPass(request):
         user.set_password(password)
         user.save()
        
-        send_mail(
-             "Password Change Code Scan", 
-             f"Hello {user.username} \n \n Your Code Scan account password was just changed. If this was not you, then thats an issue. \n DO NOT REPLY", 
-             SENDER_EMAIL, 
-             [user.email]
-         )
+        send_mail( "Password Change Code Scan", f"Hello {user.username} \n \n Your Code Scan account password was just changed. If this was not you, then thats an issue. \n DO NOT REPLY", SENDER_EMAIL, [user.email])
         
         return JsonResponse({"success": "true", 'message': 'Password reset successful.'})
 
@@ -207,4 +183,5 @@ def resetPass(request):
         return JsonResponse({"success": "false", 'error': 'Invalid or expired code.'}, status=403)
     except Exception as e:
         print(f"Reset password error: {e}")
+
         return JsonResponse({'success': 'false', 'error': 'An unexpected server error occurred.'}, status=500)
